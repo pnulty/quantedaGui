@@ -14,6 +14,7 @@ getCorpus <- function(path){
   print(path$datapath)
   tmpPath <- tempdir
   fs <- path$datapath
+  textsvec = c()
   for (i in 1:length(fs)){
     textsvec[i] <- paste(readLines(fs[i]), collapse = " ")
   }
