@@ -6,12 +6,12 @@
 library(shiny)
 library(quanteda)
 library(dplyr)
+library(DT)
 
 getCorpus <- function(path){
   if(is.null(path)){
     return(NULL)
   }
-  print(path$datapath)
   tmpPath <- tempdir
   fs <- path$datapath
   textsvec = c()
@@ -29,8 +29,6 @@ getCorpusFromZip <- function(path, fixedZip = FALSE){
     return(NULL)
   }
   if(fixedZip){
-    # need an altered version of textfiles.R to make this work 
-    # (around line 298)
     qc <- (textfile(path))
   }
   else{
@@ -50,6 +48,7 @@ getCorpusFromZip <- function(path, fixedZip = FALSE){
 shinyServer(function(input, output) {
   myCorpus <- reactive({
     inFile <- input$file1
+    print('reading in corpus')
     if (is.null(inFile))
       return(NULL)
 
@@ -61,27 +60,56 @@ shinyServer(function(input, output) {
     }
     return(mc)
   })
-  output$fileTable <- renderDataTable({
-    curCorpus <- myCorpus()
-    summary(curCorpus)
-  }, options = list(searching = FALSE))
-  output$dfmTable <-  renderDataTable({
-    curCorpus <- myCorpus()
-    weightType = 'relFreq'
-    curDf <- dfm(curCorpus) %>% trim(as.numeric(input$minFreq), as.numeric(input$minDoc))
-    if(input$weightingRadio != "count"){
-      curDf <- weight(curDf, input$weightingRadio)
-    }
-    showN <- as.numeric(input$showN)
-    curDf <- as.data.frame(curDf)
-    toRender <- cbind(filenames = row.names(curDf[,1:showN]), curDf[,1:showN])
-  }, options = list(searching = FALSE))
   
-  output$kwicTable <- renderDataTable({
+  
+  make_dfm <- eventReactive(input$dfm_button,{
+      curCorpus <- myCorpus()
+      curDf <- dfm(curCorpus) %>% dfm_trim(as.numeric(input$minFreq), as.numeric(input$minDoc))
+      if(input$weightingRadio != "count"){
+          curDf <- weight(curDf, input$weightingRadio)
+      }
+    curDf  
+     # toRender <- cbind(filenames = row.names(curDf[,1:showN]), curDf[,1:showN])
+  } )
+  
+  make_scale <- eventReactive(input$scale_button,{
+      print('scale button called')
+      curCorpus <- myCorpus()
+      curDf <- make_dfm()
+      ca_fitted <- textmodel_ca(curDf, nd=2)
+      coldf <- as.data.frame(ca_fitted$colcoord)
+      rownames(coldf) <- ca_fitted$colnames
+      coldf
+      
+      
+  })
+  
+  
+    output$fileTable <- DT::renderDataTable({
+
+        
+        curCorpus <- myCorpus()
+        validate(
+            need(curCorpus != "", "Please select a data set")
+        )
+        summary(curCorpus, n=ndoc(curCorpus))
+        }, options = list(searching = FALSE))
+    
+    
+    output$dfmTable <-  DT::renderDataTable({
+    disp <- as.data.frame(make_dfm())
+    disp[,1:input$showN]
+    })
+    
+    output$scale_table <- DT::renderDataTable({make_scale()})
+
+
+  
+    output$kwicTable <- renderDataTable({
     curCorpus <- myCorpus()
     kwic(curCorpus, input$keyword, window = input$contextSize,
          valuetype = input$kwicValueType,
          case_insensitive = !(input$caseSensitive))
-  }, options = list(searching = FALSE))
+    }, options = list(searching = FALSE))
 
 })

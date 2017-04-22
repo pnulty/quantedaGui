@@ -22,7 +22,7 @@ uploadPanel <- tabPanel("File Upload",
                                      '.tsv'
                          ), multiple=TRUE),
                radioButtons("uploadTypeRadio", label = "Upload type",
-                            choices = list("zip file" = 1, ".txt files" = 2), 
+                            choices = list("zip file" = 1, ".txt files" = 2, "corpus object"), 
                             selected = 1)
              ),
              # Show a plot of the generated distribution
@@ -48,8 +48,8 @@ dfmPanel <- tabPanel("DFM",
              "Feature weighting",
              radioButtons("weightingRadio", label = "Type of feature weighting",
                           choices = list("Count" = "count", "tf-idf" = "tfidf", "Relative frequency" = "relFreq"), 
-                          selected = "count")
-             
+                          selected = "count"),hr(),
+             actionButton("dfm_button", "Process")
            ),
            # Show a plot of the generated distribution
            mainPanel(
@@ -72,22 +72,40 @@ kwicPanel <- tabPanel("Keyword-in-context",
                           selected = "glob"),
              checkboxInput("caseSensitive", "Case Sensitive")
            ),
-           # Show a plot of the generated distribution
            mainPanel(
              dataTableOutput("kwicTable")
            )
          )
 )
 
+
+###################
+# Tab Four: Scaling
+###################
+scale_plot <- tabPanel("Scale Plot",
+                      sidebarLayout(
+                          sidebarPanel(
+                              actionButton("scale_button", "go")
+                          ),
+                          mainPanel(
+                              dataTableOutput("scale_table")
+                          )
+                      )
+)
+
 shinyUI(fluidPage(
   # Application title
-  titlePanel("Quanteda"),
+  titlePanel(h4("Quanteda")),
+  "A prototype of a graphical interface for the quanteda package.",
+  a(href="https://github.com/pnulty/quantedaGui", "Shiny app code."),
+  a(href="https://github.com/kbenoit/quanteda", "Quanteda code and introduction. "),
 
   # Sidebar with a slider input for number of bins
   tabsetPanel(
     uploadPanel,
     dfmPanel,
-    kwicPanel
+    kwicPanel,
+    scale_plot
     )
   )
 )
